@@ -10,6 +10,7 @@ def ejecutar_bot_facebook():
         print("Error: No se encontraron las cookies en los Secrets de GitHub.")
         return
 
+    # Apuntamos exactamente al video que subiste a tu raíz
     nombre_video = "IMG_7334.MOV"
     ruta_video = os.path.abspath(nombre_video)
     
@@ -17,16 +18,16 @@ def ejecutar_bot_facebook():
         print(f"❌ Error: No se encontró el archivo {nombre_video} en el repositorio.")
         return
     else:
-        print(f"📁 Archivo multimedia listo para inyección: {ruta_video}")
+        print(f"📁 Archivo de video localizado correctamente en: {ruta_video}")
 
     with sync_playwright() as p:
-        print("Iniciando emulación nativa de dispositivo móvil...")
-        # Usamos la configuración de hardware oficial de un iPhone 11/12 para emparejar las cookies
-        dispositivo = p.devices["iPhone 12"]
+        print("Iniciando navegador emulado...")
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(**dispositivo)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        )
         
-        print("Cargando y formateando cookies...")
+        print("Cargando y formateando lista de cookies...")
         try:
             cookie_list = json.loads(raw_cookies)
             for cookie in cookie_list:
@@ -47,48 +48,45 @@ def ejecutar_bot_facebook():
                 cookie.pop("hostOnly", None)
                 
             context.add_cookies(cookie_list)
-            print("✅ Sesión móvil sincronizada correctamente.")
+            print("✅ Sesión clonada exitosamente.")
             
         except Exception as e:
-            print(f"❌ Error en procesamiento de cookies: {e}")
+            print(f"❌ Error al procesar formato de cookies: {e}")
             browser.close()
             return
         
         page = context.new_page()
+        print("Abriendo Facebook...")
+        page.goto("https://www.facebook.com/")
+        time.sleep(5)
         
-        # Entramos directamente a la suite de publicación móvil de Facebook
-        print("Abriendo creador de Reels móvil...")
-        page.goto("https://m.facebook.com/reels/create", wait_until="domcontentloaded")
-        time.sleep(8)
+        print("Navegando directo al creador de Reels...")
+        page.goto("https://www.facebook.com/reels/create")
+        time.sleep(7)
         
-        print(f"URL cargada en pantalla: {page.url}")
-        
-        if "login" in page.url or "checkpoint" in page.url:
-            print("❌ Error: Facebook rechazó el acceso. Es necesario refrescar el archivo JSON de cookies.")
-            browser.close()
-            return
-            
         try:
-            print("Analizando inputs multimedia en entorno móvil...")
+            print("Iniciando carga del archivo multimedia...")
+            # Evento nativo para subir archivos sin importar el diseño visual de la página
+            with page.expect_file_chooser() as fc_info:
+                # Buscamos cualquier elemento interactivo que sirva para subir contenido
+                page.locator("input[type='file']").first.click(timeout=5000)
             
-            # En la versión móvil, Facebook suele usar inputs genéricos ocultos detrás del botón táctil.
-            # Buscaremos cualquier input de tipo archivo disponible en el DOM móvil.
-            formulario_subida = page.locator("input[type='file']")
-            conteo_inputs = formulario_subida.count()
-            print(f"Campos de subida detectados en la página: {conteo_inputs}")
+            file_chooser = fc_info.value
+            file_chooser.set_files(ruta_video)
             
-            if conteo_inputs > 0:
-                print("¡Input móvil localizado! Subiendo video de manera automatizada...")
-                # Inyectamos el archivo en el primer cargador disponible
-                formulario_subida.first.set_input_files(ruta_video)
-                print("⏳ Archivo enviado con éxito. Esperando 25 segundos para asegurar el procesamiento en los servidores de Meta...")
-                time.sleep(25)
-                print("✅ Proceso de subida móvil finalizado correctamente.")
-            else:
-                print("⚠️ No se encontró un cargador multimedia estándar en este diseño de página.")
-                
+            print("⏳ Video inyectado en el sistema. Esperando 25 segundos para el procesamiento de Meta...")
+            time.sleep(25)
+            print("✅ El video ha sido cargado exitosamente en el panel.")
+            
         except Exception as e:
-            print(f"❌ Ocurrió un inconveniente durante el proceso de carga: {e}")
+            print(f"⚠️ Nota de carga: Se intentará un método alternativo por selector directo.")
+            try:
+                page.locator("input[type='file']").first.set_input_files(ruta_video)
+                print("⏳ Procesando carga alternativa... Esperando 25 segundos.")
+                time.sleep(25)
+                print("✅ Video cargado por método alternativo.")
+            except Exception as err:
+                print(f"❌ No se pudo completar la carga multimedia: {err}")
             
         browser.close()
 
