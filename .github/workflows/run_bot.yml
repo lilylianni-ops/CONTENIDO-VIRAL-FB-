@@ -1,0 +1,28 @@
+name: Ejecutar Bot de Facebook
+
+on:
+  workflow_dispatch: # Permite que lo enciendas con un botón desde el celular
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar Codigo
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar Librerias
+      run: |
+        pip install -r requisitos.txt
+        playwright install chromium
+
+    - name: Correr el Script
+      env:
+        FB_EMAIL: ${{ secrets.FB_EMAIL }}
+        FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
+      run: python bot.py
